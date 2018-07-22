@@ -4,7 +4,8 @@
   "description": "Web crawler for public instagram ptofile posts",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Sorry mate, no tests yet...\""
+    "test": "echo \"Sorry mate, no tests yet...\"",
+    "start": "node index.js"
   },
   "repository": {
     "type": "git",
