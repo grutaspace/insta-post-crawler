@@ -1,0 +1,24 @@
+{
+  "name": "insta-post-crawler",
+  "version": "0.0.1",
+  "description": "Web crawler for public instagram ptofile posts",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Sorry mate, no tests yet...\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/grutaspace/insta-post-crawler.git"
+  },
+  "author": "guigs",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/grutaspace/insta-post-crawler/issues"
+  },
+  "homepage": "https://github.com/grutaspace/insta-post-crawler#readme",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.2",
+    "express": "^4.16.3",
+    "request": "^2.87.0"
+  }
+}
