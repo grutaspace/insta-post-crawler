@@ -1,7 +1,5 @@
 const express = require('express')
-const cheerio = require('cheerio')
 const axios = require('axios')
-const request = require('request')
 const CircularJSON = require('circular-json')
 
 const pkg = require('./package.json')
@@ -23,81 +21,60 @@ app.get('/meta/whoami', (req, res) => {
   })
 })
 
-// PAGE FETCHER
-const fetchPage = (userId) => {
-  console.log('FETCHING PAGE USR ', userId)
-  return axios.get(`https://www.instagram.com/${userId}`)
-  .then((res) => {
-      let stringRes
+// ROUTES
+app.get('/post/:userId', async function (req, res) {
+  console.log(`Fetching data for user ${req.params.userId}...`)
+  let noiceRes
+  await axios.post('https://instaplan.herokuapp.com/graphql',{
+    "operationName":"user",
+    "variables": {
+        "username": req.params.userId
+    },
+    "query":"query user($username: String!) {  user(username: $username) {\n    id\n    avatarUrl\n    name\n    bio\n    website\n    followers\n    following\n    posts\n    photos {\n      id\n      url\n      __typename\n    }\n    isPrivate\n    __typename\n  }\n}\n"
+  }).then(oi => {
+      let jsonSuccessRes, jsonResponse
       try {
-        stringRes = CircularJSON.stringify(res)
+        jsonSuccessRes = CircularJSON.stringify(oi)
       } catch (err) {
         console.log('[CRAWL 1] ERR: ', err)
+        noiceRes = {
+          status: 500,
+          message: 'Error parsing circular json from api call...'
+        }
       }
-      return stringRes
-    }
-  )
-  .then((stringRes) => {
-    let json
-    try {
-      json = JSON.parse(stringRes)
-    } catch (err) {
-      console.log('[CRAWL 2] ERR: ', err)
-    }
-    return json.data
-  }
-)
-  .catch(err => console.log('error fetching profile page: ', err.toString()))
-}
+      // back to json
+      try {
+        jsonResponse = JSON.parse(jsonSuccessRes)
+      } catch (err) {
+        console.log('[XAUXAU 1] ERR: ', err)
+        jsonResponse = {
+          status: 500,
+          message: 'Error parsing stringified circular json back to json...'
+        }
+      }
 
-// ROUTES
-app.get('/posts/:userId', async function (req, res) {
-  console.log('req received to crawl usr ', req.params.userId)
-  // TRY GET PAGE DATA FIRST
-  let pageData = null
-  try {
-    pageData = await fetchPage(req.params.userId)
-  } catch (err) {
-    console.log('ERROR FETCHING PAGE: ', err.toString())
-  }
-  // IF THERE IS PAGE DATA, CHEERIO THE SHIT OUT OF IT
-  if (pageData) {
-    const $ = cheerio.load(pageData)
-    let images
-    try {
-      images = $('img')
-    } catch (err) {
-      console.log('[CRAWL 3] ERR: ', err)
-      res.json({
-        requstedUserId: req.params.userId,
-        message: "Error making cheerio stuff"
-      })
-      return
+      if(jsonResponse.data){
+        noiceRes = {
+          status: 200,
+          data: jsonResponse.data
+        }
+      } else {
+        noiceRes = {
+          status: 500,
+          message: 'Something wrong happened, there was no data inside success respose from heroku app...'
+        }
+      }
+      return noiceRes
+  }).catch(xau => {
+    console.log('error calling api ', xau.toString())
+    noiceRes = {
+      status: 503,
+      message: 'Error calling herokuapp...',
+      error: xau
     }
-    // circular again
-    let square
-    try {
-      square = CircularJSON.stringify(images)
-      json = JSON.parse(square)
-    } catch (err) {
-      console.log('[CRAWL 4] ERR: ', err)
-      res.json({
-        requstedUserId: req.params.userId,
-        message: "Error parsing cheerio stuff"
-      })
-      return
-    }
-    res.json({
-      requstedUserId: req.params.userId,
-      pageData,
-      images: json,
-    })
-  } else {
-    res.json({
-      requstedUserId: req.params.userId,
-      message: "Error in cheerio method",
-    })
-  }
+  })
+
+  res.status(noiceRes.status).json(noiceRes)
 })
 
 app.listen(3000, () => {
